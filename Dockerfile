@@ -1,43 +1,29 @@
-FROM debian:jessie
-MAINTAINER marco [dot] turi [at] hotmail [dot] it
+FROM debian:stretch
 
 ENV DEBIAN_FRONTEND=noninteractive \
     ANDROID_HOME=/opt/android-sdk-linux \
-    NPM_VERSION=5.5.1 \
-    IONIC_VERSION=3.19.0 \
-    CORDOVA_VERSION=7.1.0 \
-    YARN_VERSION=1.3.2 \
-    GRADLE_VERSION=4.4.1 \
+    NPM_VERSION=6.13.4 \
+    GRADLE_VERSION=4.10.1 \
+    IONIC_VERSION=5.4 \
     # Fix for the issue with Selenium, as described here:
     # https://github.com/SeleniumHQ/docker-selenium/issues/87
     DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 # Install basics
 RUN apt-get update &&  \
-    apt-get install -y git wget curl unzip ruby ruby-dev build-essential && \
-    curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
-    apt-get update &&  \
-    apt-get install -y nodejs && \
-    npm install -g npm@"$NPM_VERSION" cordova@"$CORDOVA_VERSION" ionic@"$IONIC_VERSION" yarn@"$YARN_VERSION" && \
-    npm cache clear --force && \
-    gem install sass scss_lint && \
+    apt-get install -y git wget curl unzip ruby ruby-dev build-essential openjdk-8-jdk && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash && \
+    export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+    nvm install v12 && \
+    npm install -g ionic@"$IONIC_VERSION" && \
     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     dpkg --unpack google-chrome-stable_current_amd64.deb && \
     apt-get install -f -y && \
     apt-get clean && \
     rm google-chrome-stable_current_amd64.deb && \
-    mkdir Sources && \
-    mkdir -p /root/.cache/yarn/ && \
-
+    mkdir /sources && \
 # Font libraries
     apt-get -qqy install fonts-ipafont-gothic xfonts-100dpi xfonts-75dpi xfonts-cyrillic xfonts-scalable libfreetype6 libfontconfig && \
-
-# install python-software-properties (so you can do add-apt-repository)
-    apt-get update && apt-get install -y -q python-software-properties software-properties-common  && \
-    add-apt-repository "deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main" -y && \
-    echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections && \
-    apt-get update && apt-get -y install oracle-java8-installer && \
-
 # System libs for android enviroment
     echo ANDROID_HOME="${ANDROID_HOME}" >> /etc/environment && \
     dpkg --add-architecture i386 && \
@@ -46,13 +32,11 @@ RUN apt-get update &&  \
     apt-get clean && \
     apt-get autoclean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-
 # Install Android Tools
     mkdir  /opt/android-sdk-linux && cd /opt/android-sdk-linux && \
-    wget --output-document=android-tools-sdk.zip --quiet https://dl.google.com/android/repository/tools_r25.2.3-linux.zip && \
+    wget --output-document=android-tools-sdk.zip --quiet https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip && \
     unzip -q android-tools-sdk.zip && \
     rm -f android-tools-sdk.zip && \
-
 # Install Gradle
     mkdir  /opt/gradle && cd /opt/gradle && \
     wget --output-document=gradle.zip --quiet https://services.gradle.org/distributions/gradle-"$GRADLE_VERSION"-bin.zip && \
@@ -64,9 +48,8 @@ RUN apt-get update &&  \
 ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:/opt/gradle/gradle-${GRADLE_VERSION}/bin
 
 # Install Android SDK
-RUN yes Y | ${ANDROID_HOME}/tools/bin/sdkmanager "build-tools;25.0.2" "platforms;android-25" "platform-tools"
-RUN cordova telemetry off
+RUN yes Y | ${ANDROID_HOME}/tools/bin/sdkmanager "build-tools;28.0.3" "platforms;android-28" "platform-tools"
 
-WORKDIR Sources
+WORKDIR /sources
 EXPOSE 8100 35729
-CMD ["ionic", "serve"]
+CMD ["npm build"]
