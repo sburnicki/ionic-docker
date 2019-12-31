@@ -2,19 +2,19 @@ FROM debian:stretch
 
 ENV DEBIAN_FRONTEND=noninteractive \
     ANDROID_HOME=/opt/android-sdk-linux \
-    NPM_VERSION=6.13.4 \
     GRADLE_VERSION=4.10.1 \
     IONIC_VERSION=5.4 \
     # Fix for the issue with Selenium, as described here:
     # https://github.com/SeleniumHQ/docker-selenium/issues/87
-    DBUS_SESSION_BUS_ADDRESS=/dev/null
+    DBUS_SESSION_BUS_ADDRESS=/dev/null \
+    NODE_VERSION=12
 
 # Install basics
 RUN apt-get update &&  \
     apt-get install -y git wget curl unzip ruby ruby-dev build-essential openjdk-8-jdk && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash && \
-    export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
-    nvm install v12 && \
+    export NVM_DIR="/root/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+    nvm install "$NODE_VERSION" && \
     npm install -g ionic@"$IONIC_VERSION" && \
     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     dpkg --unpack google-chrome-stable_current_amd64.deb && \
@@ -45,11 +45,13 @@ RUN apt-get update &&  \
     chown -R root. /opt
 
 # Setup environment
-ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:/opt/gradle/gradle-${GRADLE_VERSION}/bin
+ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:/opt/gradle/gradle-${GRADLE_VERSION}/bin:
+ENV BASH_ENV "/root/.bashrc"
 
 # Install Android SDK
 RUN yes Y | ${ANDROID_HOME}/tools/bin/sdkmanager "build-tools;28.0.3" "platforms;android-28" "platform-tools"
 
 WORKDIR /sources
 EXPOSE 8100 35729
-CMD ["npm build"]
+
+CMD ["npm start"]
